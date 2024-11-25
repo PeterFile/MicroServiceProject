@@ -1,0 +1,15 @@
+server:
+  port: 8083
+feign:
+  okhttp:
+    enabled: true
+db:
+  database: hm-pay
+  port: 3306
+swagger:
+  title: "黑马商场交易服务接口文档"
+  package: com.hmall.pay.controller\
+mq:
+  vh: /hmall
+  un: admin
+  pw: 123

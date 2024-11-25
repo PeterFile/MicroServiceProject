@@ -1,0 +1,12 @@
+server:
+  port: 8087
+db:
+  database: hm-trade
+  port: 3306
+swagger:
+  title: "黑马商场交易服务接口文档"
+  package: com.hmall.trade.controller\
+mq:
+  vh: /hmall
+  un: admin
+  pw: 123
