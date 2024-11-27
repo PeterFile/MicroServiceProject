@@ -3,6 +3,8 @@ server:
 feign:
   okhttp:
     enabled: true
+  sentinel:
+    enabled: true
 db:
   database: hm-pay
   port: 3306
