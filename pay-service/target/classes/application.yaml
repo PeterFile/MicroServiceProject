@@ -1,7 +1,9 @@
 server:
-  port: 8083
+  port: 8283
 feign:
   okhttp:
+    enabled: true
+  sentinel:
     enabled: true
 db:
   database: hm-pay
