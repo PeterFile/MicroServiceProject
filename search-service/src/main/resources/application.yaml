@@ -1,0 +1,8 @@
+server:
+  port: 8185
+db:
+  database: hm-item
+  port: 3306
+swagger:
+  title: "黑马商场搜索服务接口文档"
+  package: com.hmall.search.controller
