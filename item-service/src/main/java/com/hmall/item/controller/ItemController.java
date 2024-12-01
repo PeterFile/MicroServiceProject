@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmall.common.domain.PageDTO;
 import com.hmall.common.domain.PageQuery;
 import com.hmall.common.utils.BeanUtils;
+import com.hmall.common.utils.RabbitMqHelper;
+import com.hmall.item.constants.MQConstants;
 import com.hmall.item.repository.dto.ItemDTO;
 import com.hmall.item.repository.dto.OrderDetailDTO;
 import com.hmall.item.repository.po.Item;
@@ -24,6 +26,8 @@ import java.util.List;
 public class ItemController {
 
     private final IItemService itemService;
+
+    private final RabbitMqHelper rabbitMqHelper;
 
     @ApiOperation("分页查询商品")
     @GetMapping("/page")
@@ -53,6 +57,7 @@ public class ItemController {
     public void saveItem(@RequestBody ItemDTO item) {
         // 新增
         itemService.save(BeanUtils.copyBean(item, Item.class));
+        rabbitMqHelper.sendMessage(MQConstants.SYNC_ES_EXCHANGE_NAME, MQConstants.SYNC_ES_CREATE_KEY, item);
     }
 
     @ApiOperation("更新商品状态")
@@ -62,6 +67,7 @@ public class ItemController {
         item.setId(id);
         item.setStatus(status);
         itemService.updateById(item);
+        rabbitMqHelper.sendMessage(MQConstants.SYNC_ES_EXCHANGE_NAME, MQConstants.SYNC_ES_CREATE_KEY, item);
     }
 
     @ApiOperation("更新商品")
@@ -71,12 +77,14 @@ public class ItemController {
         item.setStatus(null);
         // 更新
         itemService.updateById(BeanUtils.copyBean(item, Item.class));
+        rabbitMqHelper.sendMessage(MQConstants.SYNC_ES_EXCHANGE_NAME, MQConstants.SYNC_ES_CREATE_KEY, item);
     }
 
     @ApiOperation("根据id删除商品")
     @DeleteMapping("{id}")
     public void deleteItemById(@PathVariable("id") Long id) {
         itemService.removeById(id);
+        rabbitMqHelper.sendMessage(MQConstants.SYNC_ES_EXCHANGE_NAME, MQConstants.SYNC_ES_DELETE_KEY, id);
     }
 
     @ApiOperation("批量扣减库存")

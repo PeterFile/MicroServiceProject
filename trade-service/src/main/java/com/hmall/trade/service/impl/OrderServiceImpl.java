@@ -2,7 +2,6 @@ package com.hmall.trade.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.hmall.api.client.CartClient;
 import com.hmall.api.client.ItemClient;
 import com.hmall.api.dto.ItemDTO;
 import com.hmall.api.dto.OrderDetailDTO;
@@ -18,7 +17,6 @@ import com.hmall.trade.service.IOrderService;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -43,8 +41,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     private final ItemClient itemClient;
     private final IOrderDetailService detailService;
-    private final CartClient cartClient;
-    private final RabbitTemplate rabbitTemplate;
     private final RabbitMqHelper rabbitMqHelper;
 
     @Override
