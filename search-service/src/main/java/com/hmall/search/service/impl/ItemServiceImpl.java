@@ -21,13 +21,14 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * <p>
@@ -108,5 +109,56 @@ public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements II
         pageDTO.setList(itemDTOS);
         pageDTO.setTotal(response.getHits().getTotalHits().value);
         return pageDTO;
+    }
+
+    @Override
+    public Map<String, List<String>> filtersBool(ItemPageQuery query) throws IOException {
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+        if (StrUtil.isNotBlank(query.getKey())) {
+            boolQuery.must(QueryBuilders.matchQuery("name", query.getKey()));
+        }
+        if (StrUtil.isNotBlank(query.getBrand())) {
+            boolQuery.filter(QueryBuilders.termQuery("brand", query.getBrand()));
+        }
+        if (StrUtil.isNotBlank(query.getCategory())) {
+            boolQuery.filter(QueryBuilders.termQuery("category", query.getCategory()));
+        }
+
+        if (query.getMinPrice() != null && query.getMaxPrice() != null) {
+            boolQuery.filter(QueryBuilders.rangeQuery("price").gte(query.getMinPrice()).lte(query.getMaxPrice()));
+        } else if (query.getMinPrice() != null) {
+            boolQuery.filter(QueryBuilders.rangeQuery("price").gte(query.getMinPrice()));
+        } else if (query.getMaxPrice() != null) {
+            boolQuery.filter(QueryBuilders.rangeQuery("price").lte(query.getMaxPrice()));
+        }
+
+        AggregationBuilder categoryAgg = AggregationBuilders.terms("categoryAgg").field("category");
+        AggregationBuilder brandAgg = AggregationBuilders.terms("brandAgg").field("brand");
+
+        // Create search request with aggregations
+        SearchRequest searchRequest = new SearchRequest("items");
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(boolQuery);
+        sourceBuilder.aggregation(categoryAgg);
+        sourceBuilder.aggregation(brandAgg);
+        searchRequest.source(sourceBuilder);
+
+        // Execute search and fetch aggregations (this part requires your client to execute the search)
+        SearchResponse response = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+
+        // Extract aggregation results and filter accordingly
+        Map<String, List<String>> filters = new HashMap<>();
+        Terms categoryTerms = response.getAggregations().get("categoryAgg");
+        Terms brandTerms = response.getAggregations().get("brandAgg");
+
+        List<String> categories = new ArrayList<>();
+        categoryTerms.getBuckets().forEach(bucket -> categories.add(bucket.getKeyAsString()));
+        filters.put("categories", categories);
+
+        List<String> brands = new ArrayList<>();
+        brandTerms.getBuckets().forEach(bucket -> brands.add(bucket.getKeyAsString()));
+        filters.put("brands", brands);
+
+        return filters;
     }
 }
