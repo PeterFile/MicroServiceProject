@@ -18,8 +18,11 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.lucene.search.function.FunctionScoreQuery;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
@@ -73,19 +76,28 @@ public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements II
             boolQuery.filter(QueryBuilders.rangeQuery("price").lte(query.getMaxPrice()));
         }
 
-        // 2.创建分页查询请求
+        // 2.构建function_score查询，对isAD为true的商品加权
+        FunctionScoreQueryBuilder functionScoreQuery = QueryBuilders.functionScoreQuery(
+                boolQuery,
+                new FunctionScoreQueryBuilder.FilterFunctionBuilder[]{
+                        // 针对isAD字段进行加权处理，isAD为true时给予较高的权重
+                        new FunctionScoreQueryBuilder.FilterFunctionBuilder(
+                                QueryBuilders.termQuery("isAD", true),
+                                ScoreFunctionBuilders.weightFactorFunction(10)  // 设置权重值，比如10
+                        )
+                }
+        ).scoreMode(FunctionScoreQuery.ScoreMode.MULTIPLY);
+
+        // 3.创建分页查询请求
         SearchRequest searchRequest = new SearchRequest("items");
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(boolQuery);
+        sourceBuilder.query(functionScoreQuery);
         // 页码
         sourceBuilder.from((query.getPageNo() - 1) * query.getPageSize());
         sourceBuilder.size(query.getPageSize());
         searchRequest.source(sourceBuilder);
 
         log.info("构建的查询条件：{}", searchRequest);
-//        searchRequest.source().query(boolQuery);
-//        searchRequest.source().from((query.getPageNo() - 1) * query.getPageSize());
-//        searchRequest.source().size(query.getPageSize());
         SearchResponse response = null;
 
         try {
